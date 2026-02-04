@@ -1,10 +1,6 @@
 # Learner Performance Prediction
 
-Simple and performant implementations of learner performance prediction algorithms:
-- [Performance Factors Analysis (PFA)](http://pact.cs.cmu.edu/koedinger/pubs/AIED%202009%20final%20Pavlik%20Cen%20Keodinger%20corrected.pdf)
-- [DAS3H](https://arxiv.org/pdf/1905.06873.pdf)
-- [Deep Knowledge Tracing (DKT)](https://stanford.edu/~cpiech/bio/papers/deepKnowledgeTracing.pdf)
-- [Self-Attentive Knowledge Tracing (SAKT)](https://arxiv.org/pdf/1907.06837.pdf)
+Forked repo for more Dataset and KT models
 
 ## Setup
 
@@ -94,3 +90,19 @@ python train_sakt.py --dataset <dataset codename>
 | Best-LR        | **0.77**      | 0.75     | 0.70          | 0.71     | **0.80** | **0.83**  | **0.86** | 0.82     |
 | DKT            | 0.75          | **0.77** | **0.73**      | **0.77** | 0.79     | 0.82      | 0.83     | **0.83** |
 | SAKT           | 0.75          | 0.73     | **0.73**      | 0.72     | 0.78     | 0.80      | 0.83     | 0.81     |
+
+# Citation
+This repository is a fork of the [learner-performance-prediction](https://github.com/theophilegervet/learner-performance-prediction) repository. If you would like to cite the original paper, please cite the following:
+
+```bibtex
+@article{gervet2020deep,
+  title={When is deep learning the best approach to knowledge tracing?},
+  author={Gervet, Theophile and Koedinger, Ken and Schneider, Jeff and Mitchell, Tom and others},
+  journal={Journal of Educational Data Mining},
+  volume={12},
+  number={3},
+  pages={31--54},
+  year={2020}
+}
+```
+```
