@@ -19,7 +19,14 @@ def phi(x):
 WINDOW_LENGTHS = [3600 * 24 * 30, 3600 * 24 * 7, 3600 * 24, 3600]
 NUM_WINDOWS = len(WINDOW_LENGTHS) + 1
 
-
+def calc_weighted_score_skill(logs, r=0.5):
+    value = 0
+    weight = 1
+    for l in logs[::-1]:
+        value += (l * 2 - 1) * weight
+        weight *= r
+    return value
+    
 def df_to_sparse(df, Q_mat, active_features):
     """Build sparse dataset from dense dataset and q-matrix.
 
@@ -56,6 +63,9 @@ def df_to_sparse(df, Q_mat, active_features):
                 features[key] = sparse.csr_matrix(np.empty((0, (num_skills + 2) * NUM_WINDOWS)))
             else:
                 features[key] = sparse.csr_matrix(np.empty((0, num_skills + 2)))
+    # Weighted score feature
+    if 'sh' in active_features:
+        features['sh'] = np.empty((0, 9))
 
     # Build feature rows by iterating over users
     for user_id in df["user_id"].unique():
@@ -171,8 +181,21 @@ def df_to_sparse(df, Q_mat, active_features):
                 # Past wins for all items
                 if 'tc' in active_features:
                     wins[:, -1] = phi(np.concatenate((np.zeros(1), np.cumsum(df_user[:, 3])[:-1])))
+                    
 
             features['w'] = sparse.vstack([features['w'], sparse.csr_matrix(wins)])
+        
+        if 'sh' in active_features:
+            # weightning window with 0.9
+            tmp = np.vstack((np.zeros(num_skills), skills))[:-1]
+            ver_corrects = np.hstack((np.array(0), df_user[:, 3]*2-1))
+            sh_score = np.zeros((num_items_user, 9))
+            for i in range(1,10,1):
+                decayed_corrects = ver_corrects * np.power(i/10, np.arange(len(ver_corrects)-1, -1, -1))
+                corrects = decayed_corrects.reshape(-1, 1)[:-1]
+                sh_score[:,i-1] = np.mean(np.cumsum(tmp * corrects, 0) * skills, axis=1)
+                # features['sh'] = sparse.vstack([features['sh'], sparse.csr_matrixsh_score)])
+            features['sh'] = np.vstack((features['sh'], sh_score))
 
     # User and item one hot encodings
     onehot = OneHotEncoder()
@@ -205,16 +228,27 @@ if __name__ == "__main__":
                         help='If True, historical counts include wins.')
     parser.add_argument('-a', action='store_true',
                         help='If True, historical counts include attempts.')
+    parser.add_argument('-sh', action='store_true',
+                        help='If True, include decay-weighted skills historical win counts.')
     parser.add_argument('-tw', action='store_true',
                         help='If True, historical counts are encoded as time windows.')
+    parser.add_argument('-cold', action='store_true',
+                        help='If True, concat test and train')
+    
     args = parser.parse_args()
 
     data_path = os.path.join('data', args.dataset)
-    df = pd.read_csv(os.path.join(data_path, 'preprocessed_data.csv'), sep="\t")
+    
+    if args.cold:
+        train_df = pd.read_csv(os.path.join(data_path, 'preprocessed_data_train.csv'), sep="\t")
+        test_df = pd.read_csv(os.path.join(data_path, 'preprocessed_data_test.csv'), sep="\t")
+        df = pd.concat([train_df, test_df], axis=0)
+    else:
+        df = pd.read_csv(os.path.join(data_path, 'preprocessed_data.csv'), sep="\t")
     df = df[["user_id", "item_id", "timestamp", "correct", "skill_id"]]
     Q_mat = sparse.load_npz(os.path.join(data_path, 'q_mat.npz')).toarray()
 
-    all_features = ['u', 'i', 's', 'ic', 'sc', 'tc', 'w', 'a', 'tw']
+    all_features = ['u', 'i', 's', 'ic', 'sc', 'tc', 'w', 'a', 'tw','sh']
     active_features = [features for features in all_features if vars(args)[features]]
     features_suffix = ''.join(active_features)
 
